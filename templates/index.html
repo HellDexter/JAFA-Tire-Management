@@ -1,0 +1,96 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="row my-5">
+    <div class="col-md-12 text-center">
+        <h1 class="display-4 mb-4">
+            <span class="text-primary fw-bold">JAFA</span> Tire Management
+        </h1>
+        <p class="lead mb-5">Moderní systém pro správu pneumatik v nákladní autodopravě</p>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-dharmachakra fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">Správa pneumatik</h3>
+                <p class="card-text">Kompletní přehled o pneumatikách, jejich umístění, stavu a historii.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-truck fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">Evidence vozidel</h3>
+                <p class="card-text">Sledování tahačů, návěsů a jejich současného osazení pneumatikami.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">Reporty a analýzy</h3>
+                <p class="card-text">Přehledné statistiky životnosti pneumatik a predikce potřebných výměn.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-6 offset-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Přihlášení do systému</h4>
+            </div>
+            <div class="card-body">
+                {% if not current_user.is_authenticated %}
+                <form action="{{ url_for('login') }}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Uživatelské jméno</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Heslo</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Přihlásit se</button>
+                    </div>
+                </form>
+                <div class="mt-3 text-center">
+                    <p class="small text-muted">
+                        Výchozí přihlašovací údaje: <br>
+                        Uživatelské jméno: <strong>admin</strong><br>
+                        Heslo: <strong>admin123</strong>
+                    </p>
+                </div>
+                {% else %}
+                <div class="text-center">
+                    <p>Jste přihlášeni jako <strong>{{ current_user.username }}</strong>.</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Přejít na dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary ms-2">Odhlásit se</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Inicializace databáze</h4>
+            </div>
+            <div class="card-body">
+                <p>Pokud používáte aplikaci poprvé, je potřeba inicializovat databázi:</p>
+                <a href="{{ url_for('init_db') }}" class="btn btn-warning">Inicializovat databázi</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

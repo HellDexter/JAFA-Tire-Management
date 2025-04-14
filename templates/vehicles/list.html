@@ -1,0 +1,91 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Vozidla{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-truck"></i> Vozidla</h1>
+    <div>
+        <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Přidat vozidlo
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Seznam vozidel</h5>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('list_vehicles') }}" class="btn btn-outline-primary {{ 'active' if not vehicle_type }}">Všechna</a>
+                <a href="{{ url_for('list_vehicles', type='tahač') }}" class="btn btn-outline-primary {{ 'active' if vehicle_type == 'tahač' }}">Tahače</a>
+                <a href="{{ url_for('list_vehicles', type='návěs') }}" class="btn btn-outline-primary {{ 'active' if vehicle_type == 'návěs' }}">Návěsy</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" id="table-filter" class="form-control" placeholder="Vyhledat vozidlo...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="data-table">
+                <thead>
+                    <tr>
+                        <th>SPZ</th>
+                        <th>Typ</th>
+                        <th>Značka</th>
+                        <th>Model</th>
+                        <th>Rok výroby</th>
+                        <th>Nájezd</th>
+                        <th>Souprava</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                    <tr>
+                        <td>{{ vehicle.registration_number }}</td>
+                        <td>
+                            {% if vehicle.vehicle_type == 'tahač' %}
+                            <span class="badge bg-primary">Tahač</span>
+                            {% elif vehicle.vehicle_type == 'návěs' %}
+                            <span class="badge bg-info">Návěs</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ vehicle.vehicle_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ vehicle.brand }}</td>
+                        <td>{{ vehicle.model }}</td>
+                        <td>{{ vehicle.year_of_manufacture }}</td>
+                        <td>{{ vehicle.current_mileage }} km</td>
+                        <td>
+                            {% if vehicle.combination %}
+                            <a href="{{ url_for('combination_detail', id=vehicle.combination.id) }}">
+                                {{ vehicle.combination.name }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Nepřiřazeno</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('vehicle_detail', id=vehicle.id) }}" class="btn btn-outline-primary" title="Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('edit_vehicle', id=vehicle.id) }}" class="btn btn-outline-secondary" title="Upravit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">Žádná vozidla nebyla nalezena.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Nový servisní zásah{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tools"></i> Nový servisní zásah</h1>
+    <div>
+        <a href="{{ url_for('list_service_actions') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Přidání nového servisního zásahu</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('add_service_action') }}" method="post" enctype="multipart/form-data">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tire_id" class="form-label required-field">Pneumatika</label>
+                    <select class="form-select" id="tire_id" name="tire_id" required>
+                        <option value="">Vyberte pneumatiku...</option>
+                        {% for tire in tires %}
+                        <option value="{{ tire.id }}" 
+                                data-serial="{{ tire.serial_number }}"
+                                data-brand="{{ tire.tire_type.brand }}"
+                                data-model="{{ tire.tire_type.model }}"
+                                data-size="{{ tire.tire_type.size }}"
+                                data-status="{{ tire.status }}"
+                                data-vehicle="{{ tire.position.vehicle.registration_number if tire.position and tire.position.vehicle else 'Skladem' }}"
+                                data-position="{{ tire.position.position_code if tire.position else '-' }}">
+                            {{ tire.serial_number }} - {{ tire.tire_type.brand }} {{ tire.tire_type.model }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="action_date" class="form-label required-field">Datum zásahu</label>
+                    <input type="date" class="form-control" id="action_date" name="action_date" value="{{ today }}" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <div class="alert alert-info" id="tire-info" style="display: none;">
+                    <h6>Informace o vybrané pneumatice</h6>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>Sériové číslo:</strong> <span id="info-serial"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Typ:</strong> <span id="info-type"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Aktuální stav:</strong> <span id="info-status"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Vozidlo:</strong> <span id="info-vehicle"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Pozice:</strong> <span id="info-position"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="action_type" class="form-label required-field">Typ zásahu</label>
+                    <select class="form-select" id="action_type" name="action_type" required>
+                        <option value="">Vyberte typ zásahu...</option>
+                        <option value="kontrola">Kontrola</option>
+                        <option value="oprava">Oprava</option>
+                        <option value="měření dezénu">Měření dezénu</option>
+                        <option value="dohuštění">Dohuštění</option>
+                        <option value="výměna ventilu">Výměna ventilu</option>
+                        <option value="prořezání dezénu">Prořezání dezénu</option>
+                        <option value="jiný">Jiný</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="tread_depth" class="form-label">Hloubka dezénu (mm)</label>
+                    <input type="number" class="form-control" id="tread_depth" name="tread_depth" min="0" step="0.1">
+                    <small class="form-text text-muted">Vyplňte pouze pokud jste měřili dezén.</small>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label required-field">Popis zásahu</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="note" class="form-label">Poznámka</label>
+                <textarea class="form-control" id="note" name="note" rows="2"></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label for="photo" class="form-label">Fotografie</label>
+                <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                <small class="form-text text-muted">Volitelně můžete připojit fotografii dokumentující zásah.</small>
+            </div>
+            
+            <div class="text-end">
+                <button type="reset" class="btn btn-secondary me-2">Resetovat</button>
+                <button type="submit" class="btn btn-primary">Uložit zásah</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Zobrazení informací o vybrané pneumatice
+        const tireSelect = document.getElementById('tire_id');
+        const tireInfo = document.getElementById('tire-info');
+        const infoSerial = document.getElementById('info-serial');
+        const infoType = document.getElementById('info-type');
+        const infoStatus = document.getElementById('info-status');
+        const infoVehicle = document.getElementById('info-vehicle');
+        const infoPosition = document.getElementById('info-position');
+        
+        if (tireSelect && tireInfo) {
+            tireSelect.addEventListener('change', function() {
+                if (this.value) {
+                    const selectedOption = this.options[this.selectedIndex];
+                    
+                    infoSerial.textContent = selectedOption.dataset.serial;
+                    infoType.textContent = `${selectedOption.dataset.brand} ${selectedOption.dataset.model} ${selectedOption.dataset.size}`;
+                    infoStatus.textContent = selectedOption.dataset.status;
+                    infoVehicle.textContent = selectedOption.dataset.vehicle;
+                    infoPosition.textContent = selectedOption.dataset.position;
+                    
+                    tireInfo.style.display = 'block';
+                } else {
+                    tireInfo.style.display = 'none';
+                }
+            });
+        }
+        
+        // Automatické vyplnění hloubky dezénu
+        const actionTypeSelect = document.getElementById('action_type');
+        const treadDepthInput = document.getElementById('tread_depth');
+        
+        if (actionTypeSelect && treadDepthInput) {
+            actionTypeSelect.addEventListener('change', function() {
+                if (this.value === 'měření dezénu') {
+                    treadDepthInput.setAttribute('required', 'required');
+                    treadDepthInput.parentElement.classList.add('required-field');
+                } else {
+                    treadDepthInput.removeAttribute('required');
+                    treadDepthInput.parentElement.classList.remove('required-field');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

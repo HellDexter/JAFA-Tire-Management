@@ -1,0 +1,687 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Detail vozidla{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-truck"></i> Detail vozidla</h1>
+    <div>
+        <a href="{{ url_for('edit_vehicle', id=vehicle.id) }}" class="btn btn-secondary me-2">
+            <i class="fas fa-edit"></i> Upravit
+        </a>
+        <a href="{{ url_for('list_vehicles') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Základní informace -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Základní informace</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-12 text-center">
+                        <div class="license-plate mb-3 d-inline-block p-2 border border-secondary rounded">
+                            <h3 class="mb-0">{{ vehicle.registration_number }}</h3>
+                        </div>
+                        <div>
+                            {% if vehicle.vehicle_type == 'tahač' %}
+                            <span class="badge bg-primary fs-6">Tahač</span>
+                            {% elif vehicle.vehicle_type == 'návěs' %}
+                            <span class="badge bg-info fs-6">Návěs</span>
+                            {% else %}
+                            <span class="badge bg-secondary fs-6">{{ vehicle.vehicle_type }}</span>
+                            {% endif %}
+                            
+                            {% if vehicle.combination %}
+                            <span class="badge bg-success fs-6 ms-2">
+                                <i class="fas fa-link"></i> Souprava: {{ vehicle.combination.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <strong>Značka:</strong> {{ vehicle.brand or '-' }}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Model:</strong> {{ vehicle.model or '-' }}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Rok výroby:</strong> {{ vehicle.year_of_manufacture or '-' }}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>VIN:</strong> {{ vehicle.vin or '-' }}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Aktuální nájezd:</strong> {{ vehicle.current_mileage or 0 }} km
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Poslední aktualizace:</strong> {{ vehicle.last_mileage_update.strftime('%d.%m.%Y') if vehicle.last_mileage_update else '-' }}
+                    </div>
+                </div>
+                
+                {% if vehicle.note %}
+                <div class="mt-3">
+                    <strong>Poznámka:</strong>
+                    <p>{{ vehicle.note }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#updateMileageModal">
+                        <i class="fas fa-tachometer-alt"></i> Aktualizovat nájezd
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Souprava a propojení -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Souprava</h5>
+            </div>
+            <div class="card-body">
+                {% if vehicle.combination %}
+                <div class="mb-3">
+                    <h5>{{ vehicle.combination.name }}</h5>
+                    <p>{{ vehicle.combination.description or '' }}</p>
+                    
+                    {% set other_vehicles = [] %}
+                    {% for other in vehicle.combination.vehicles %}
+                        {% if other.id != vehicle.id %}
+                            {% set _ = other_vehicles.append(other) %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if other_vehicles %}
+                    <div class="mt-3">
+                        <strong>Vozidla v soupravě:</strong>
+                        <ul class="list-group mt-2">
+                            {% for other in other_vehicles %}
+                            <li class="list-group-item">
+                                <a href="{{ url_for('vehicle_detail', id=other.id) }}">
+                                    {{ other.registration_number }}
+                                </a>
+                                ({{ other.vehicle_type }})
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle"></i> Toto vozidlo je jediné v soupravě.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{{ url_for('combination_detail', id=vehicle.combination.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-info-circle"></i> Detail soupravy
+                        </a>
+                    </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Toto vozidlo není přiřazeno k žádné soupravě.
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{{ url_for('edit_vehicle', id=vehicle.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-link"></i> Přiřadit k soupravě
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pneumatiky na vozidle -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-dharmachakra"></i> Pneumatiky na vozidle</h5>
+            <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus"></i> Přidat pneumatiku
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-10">
+                <div class="vehicle-diagram p-3">
+                    {% if vehicle.vehicle_type == 'tahač' %}
+                    <!-- Schéma pro tahač -->
+                    <h6 class="text-center">Schéma tahače (pohled zezadu)</h6>
+                    
+                    <!-- Inicializace proměnných pro pozice -->
+                    {% set left_front = None %}
+                    {% set right_front = None %}
+                    {% set left_rear_outer = None %}
+                    {% set right_rear_outer = None %}
+                    {% set left_rear_inner = None %}
+                    {% set right_rear_inner = None %}
+                    
+                    {% for pos in positions %}
+                        {% if pos.position_code == 'L1' %}
+                            {% set left_front = pos %}
+                        {% elif pos.position_code == 'P1' %}
+                            {% set right_front = pos %}
+                        {% elif pos.position_code == 'L2' %}
+                            {% set left_rear_outer = pos %}
+                        {% elif pos.position_code == 'P2' %}
+                            {% set right_rear_outer = pos %}
+                        {% elif pos.position_code == 'L3' %}
+                            {% set left_rear_inner = pos %}
+                        {% elif pos.position_code == 'P3' %}
+                            {% set right_rear_inner = pos %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="axle-group">
+                        <div class="axle-label text-center">Přední náprava</div>
+                        <div class="tire-axle">
+                            <!-- Levá přední -->
+                            <div class="tire-position">
+                                <div class="tire {% if left_front.tire %}mounted{% endif %}">
+                                    {{ left_front.position_code }}
+                                </div>
+                                <div class="tire-label">Levá přední</div>
+                                {% if left_front.tire %}
+                                <div class="tire-info">
+                                    <small>{{ left_front.tire.tire_type.brand }} {{ left_front.tire.tire_type.model }}</small><br>
+                                    <small>{{ left_front.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=left_front.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=left_front.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_front.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Pravá přední -->
+                            <div class="tire-position">
+                                <div class="tire {% if right_front.tire %}mounted{% endif %}">
+                                    {{ right_front.position_code }}
+                                </div>
+                                <div class="tire-label">Pravá přední</div>
+                                {% if right_front.tire %}
+                                <div class="tire-info">
+                                    <small>{{ right_front.tire.tire_type.brand }} {{ right_front.tire.tire_type.model }}</small><br>
+                                    <small>{{ right_front.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=right_front.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=right_front.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_front.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="axle-group">
+                        <div class="axle-label text-center">Zadní náprava</div>
+                        <div class="tire-axle">
+                            <div class="tire-side">
+                                <!-- Levá zadní vnější -->
+                                <div class="tire-position">
+                                    <div class="tire {% if left_rear_outer.tire %}mounted{% endif %}">
+                                        {{ left_rear_outer.position_code }}
+                                    </div>
+                                    <div class="tire-label">Levá zadní vnější</div>
+                                    {% if left_rear_outer.tire %}
+                                    <div class="tire-info">
+                                        <small>{{ left_rear_outer.tire.tire_type.brand }} {{ left_rear_outer.tire.tire_type.model }}</small><br>
+                                        <small>{{ left_rear_outer.tire.tire_type.size }}</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_detail', id=left_rear_outer.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a href="{{ url_for('tire_dismount', tire_id=left_rear_outer.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-unlink"></i>
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <div class="tire-info">
+                                        <small>Není namontována</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_rear_outer.position_code) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-link"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Levá zadní vnitřní -->
+                                <div class="tire-position">
+                                    <div class="tire {% if left_rear_inner.tire %}mounted{% endif %}">
+                                        {{ left_rear_inner.position_code }}
+                                    </div>
+                                    <div class="tire-label">Levá zadní vnitřní</div>
+                                    {% if left_rear_inner.tire %}
+                                    <div class="tire-info">
+                                        <small>{{ left_rear_inner.tire.tire_type.brand }} {{ left_rear_inner.tire.tire_type.model }}</small><br>
+                                        <small>{{ left_rear_inner.tire.tire_type.size }}</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_detail', id=left_rear_inner.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a href="{{ url_for('tire_dismount', tire_id=left_rear_inner.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-unlink"></i>
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <div class="tire-info">
+                                        <small>Není namontována</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_rear_inner.position_code) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-link"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="tire-side">
+                                <!-- Pravá zadní vnější -->
+                                <div class="tire-position">
+                                    <div class="tire {% if right_rear_outer.tire %}mounted{% endif %}">
+                                        {{ right_rear_outer.position_code }}
+                                    </div>
+                                    <div class="tire-label">Pravá zadní vnější</div>
+                                    {% if right_rear_outer.tire %}
+                                    <div class="tire-info">
+                                        <small>{{ right_rear_outer.tire.tire_type.brand }} {{ right_rear_outer.tire.tire_type.model }}</small><br>
+                                        <small>{{ right_rear_outer.tire.tire_type.size }}</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_detail', id=right_rear_outer.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a href="{{ url_for('tire_dismount', tire_id=right_rear_outer.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-unlink"></i>
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <div class="tire-info">
+                                        <small>Není namontována</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_rear_outer.position_code) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-link"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Pravá zadní vnitřní -->
+                                <div class="tire-position">
+                                    <div class="tire {% if right_rear_inner.tire %}mounted{% endif %}">
+                                        {{ right_rear_inner.position_code }}
+                                    </div>
+                                    <div class="tire-label">Pravá zadní vnitřní</div>
+                                    {% if right_rear_inner.tire %}
+                                    <div class="tire-info">
+                                        <small>{{ right_rear_inner.tire.tire_type.brand }} {{ right_rear_inner.tire.tire_type.model }}</small><br>
+                                        <small>{{ right_rear_inner.tire.tire_type.size }}</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_detail', id=right_rear_inner.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a href="{{ url_for('tire_dismount', tire_id=right_rear_inner.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-unlink"></i>
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <div class="tire-info">
+                                        <small>Není namontována</small>
+                                    </div>
+                                    <div class="tire-actions">
+                                        <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_rear_inner.position_code) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-link"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% elif vehicle.vehicle_type == 'návěs' %}
+                    <!-- Schéma pro návěs -->
+                    <h6 class="text-center">Schéma návěsu (pohled zezadu)</h6>
+                    
+                    <!-- Inicializace proměnných pro pozice -->
+                    {% set left_front = None %}
+                    {% set right_front = None %}
+                    {% set left_middle = None %}
+                    {% set right_middle = None %}
+                    {% set left_rear = None %}
+                    {% set right_rear = None %}
+                    
+                    {% for pos in positions %}
+                        {% if pos.position_code == 'L1' %}
+                            {% set left_front = pos %}
+                        {% elif pos.position_code == 'P1' %}
+                            {% set right_front = pos %}
+                        {% elif pos.position_code == 'L2' %}
+                            {% set left_middle = pos %}
+                        {% elif pos.position_code == 'P2' %}
+                            {% set right_middle = pos %}
+                        {% elif pos.position_code == 'L3' %}
+                            {% set left_rear = pos %}
+                        {% elif pos.position_code == 'P3' %}
+                            {% set right_rear = pos %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="axle-group">
+                        <div class="axle-label text-center">Přední náprava</div>
+                        <div class="tire-axle">
+                            <!-- Levá přední -->
+                            <div class="tire-position">
+                                <div class="tire {% if left_front.tire %}mounted{% endif %}">
+                                    {{ left_front.position_code }}
+                                </div>
+                                <div class="tire-label">Levá přední</div>
+                                {% if left_front.tire %}
+                                <div class="tire-info">
+                                    <small>{{ left_front.tire.tire_type.brand }} {{ left_front.tire.tire_type.model }}</small><br>
+                                    <small>{{ left_front.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=left_front.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=left_front.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_front.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Pravá přední -->
+                            <div class="tire-position">
+                                <div class="tire {% if right_front.tire %}mounted{% endif %}">
+                                    {{ right_front.position_code }}
+                                </div>
+                                <div class="tire-label">Pravá přední</div>
+                                {% if right_front.tire %}
+                                <div class="tire-info">
+                                    <small>{{ right_front.tire.tire_type.brand }} {{ right_front.tire.tire_type.model }}</small><br>
+                                    <small>{{ right_front.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=right_front.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=right_front.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_front.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="axle-group">
+                        <div class="axle-label text-center">Střední náprava</div>
+                        <div class="tire-axle">
+                            <!-- Levá střední -->
+                            <div class="tire-position">
+                                <div class="tire {% if left_middle.tire %}mounted{% endif %}">
+                                    {{ left_middle.position_code }}
+                                </div>
+                                <div class="tire-label">Levá střední</div>
+                                {% if left_middle.tire %}
+                                <div class="tire-info">
+                                    <small>{{ left_middle.tire.tire_type.brand }} {{ left_middle.tire.tire_type.model }}</small><br>
+                                    <small>{{ left_middle.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=left_middle.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=left_middle.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_middle.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Pravá střední -->
+                            <div class="tire-position">
+                                <div class="tire {% if right_middle.tire %}mounted{% endif %}">
+                                    {{ right_middle.position_code }}
+                                </div>
+                                <div class="tire-label">Pravá střední</div>
+                                {% if right_middle.tire %}
+                                <div class="tire-info">
+                                    <small>{{ right_middle.tire.tire_type.brand }} {{ right_middle.tire.tire_type.model }}</small><br>
+                                    <small>{{ right_middle.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=right_middle.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=right_middle.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_middle.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="axle-group">
+                        <div class="axle-label text-center">Zadní náprava</div>
+                        <div class="tire-axle">
+                            <!-- Levá zadní -->
+                            <div class="tire-position">
+                                <div class="tire {% if left_rear.tire %}mounted{% endif %}">
+                                    {{ left_rear.position_code }}
+                                </div>
+                                <div class="tire-label">Levá zadní</div>
+                                {% if left_rear.tire %}
+                                <div class="tire-info">
+                                    <small>{{ left_rear.tire.tire_type.brand }} {{ left_rear.tire.tire_type.model }}</small><br>
+                                    <small>{{ left_rear.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=left_rear.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=left_rear.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=left_rear.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Pravá zadní -->
+                            <div class="tire-position">
+                                <div class="tire {% if right_rear.tire %}mounted{% endif %}">
+                                    {{ right_rear.position_code }}
+                                </div>
+                                <div class="tire-label">Pravá zadní</div>
+                                {% if right_rear.tire %}
+                                <div class="tire-info">
+                                    <small>{{ right_rear.tire.tire_type.brand }} {{ right_rear.tire.tire_type.model }}</small><br>
+                                    <small>{{ right_rear.tire.tire_type.size }}</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_detail', id=right_rear.tire.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <a href="{{ url_for('tire_dismount', tire_id=right_rear.tire.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-unlink"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="tire-info">
+                                    <small>Není namontována</small>
+                                </div>
+                                <div class="tire-actions">
+                                    <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=right_rear.position_code) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-link"></i>
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Pozice</th>
+                        <th>Sériové číslo</th>
+                        <th>Značka/Model</th>
+                        <th>Rozměr</th>
+                        <th>Aktuální dezén</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pos in positions %}
+                    <tr>
+                        <td>{{ pos.position_code }} - {{ pos.position_description }}</td>
+                        {% if pos.tire %}
+                        <td><a href="{{ url_for('tire_detail', id=pos.tire.id) }}">{{ pos.tire.serial_number }}</a></td>
+                        <td>{{ pos.tire.tire_type.brand }} {{ pos.tire.tire_type.model }}</td>
+                        <td>{{ pos.tire.tire_type.size }}</td>
+                        <td>{{ pos.tire.current_tread_depth|round(1) }} mm</td>
+                        <td>
+                            <a href="{{ url_for('tire_detail', id=pos.tire.id) }}" class="btn btn-sm btn-outline-primary">Detail</a>
+                            <a href="{{ url_for('tire_dismount', tire_id=pos.tire.id) }}" class="btn btn-sm btn-outline-warning">Demontovat</a>
+                        </td>
+                        {% else %}
+                        <td colspan="4" class="text-center text-muted">Není namontována žádná pneumatika</td>
+                        <td>
+                            <a href="{{ url_for('tire_mount', vehicle_id=vehicle.id, position_code=pos.position_code) }}" class="btn btn-sm btn-outline-success">Namontovat</a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro aktualizaci nájezdu -->
+<div class="modal fade" id="updateMileageModal" tabindex="-1" aria-labelledby="updateMileageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateMileageModalLabel">Aktualizace nájezdu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="#" method="post"> <!-- Update route needs to be created -->
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="current_mileage_update" class="form-label">Aktuální nájezd (km)</label>
+                        <input type="number" class="form-control" id="current_mileage_update" name="current_mileage" value="{{ vehicle.current_mileage or 0 }}" min="{{ vehicle.current_mileage or 0 }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mileage_note" class="form-label">Poznámka</label>
+                        <textarea class="form-control" id="mileage_note" name="note" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Aktualizovat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

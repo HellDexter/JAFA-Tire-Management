@@ -1,0 +1,507 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Statistiky a reporty{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card {
+    transition: all 0.3s ease;
+  }
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+  .kpi-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+  }
+  .chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1><i class="fas fa-chart-line"></i> Statistiky a reporty</h1>
+  <div>
+    <div class="btn-group">
+      <button type="button" class="btn btn-outline-primary" id="btn-refresh">
+        <i class="fas fa-sync-alt"></i> Aktualizovat data
+      </button>
+      <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-file-export"></i> Export
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('export_inventory_report') }}">Export inventáře pneumatik</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('export_tire_history_report') }}">Export historie pneumatik</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('export_service_report') }}">Export servisních zásahů</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Karty -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card kpi-card bg-primary text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Celkem pneumatik</h6>
+            <h2 class="display-5 mb-0">{{ stats.total_tires }}</h2>
+          </div>
+          <div class="kpi-icon">
+            <i class="fas fa-tire"></i>
+          </div>
+        </div>
+        <p class="card-text mt-2">V hodnotě {{ stats.total_tires_value|format_currency }} Kč</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card kpi-card bg-success text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Pneumatiky skladem</h6>
+            <h2 class="display-5 mb-0">{{ stats.tires_in_stock }}</h2>
+          </div>
+          <div class="kpi-icon">
+            <i class="fas fa-warehouse"></i>
+          </div>
+        </div>
+        <p class="card-text mt-2">{{ stats.tires_in_stock_percent }}% z celkového počtu</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card kpi-card bg-info text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Pneumatiky v provozu</h6>
+            <h2 class="display-5 mb-0">{{ stats.tires_in_use }}</h2>
+          </div>
+          <div class="kpi-icon">
+            <i class="fas fa-truck-moving"></i>
+          </div>
+        </div>
+        <p class="card-text mt-2">Na {{ stats.vehicles_with_tires }} vozidlech</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card kpi-card bg-warning text-dark">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h6 class="card-title">Servisních zásahů</h6>
+            <h2 class="display-5 mb-0">{{ stats.service_actions_month }}</h2>
+          </div>
+          <div class="kpi-icon">
+            <i class="fas fa-tools"></i>
+          </div>
+        </div>
+        <p class="card-text mt-2">V posledních 30 dnech</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grafy a reporty -->
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Pneumatiky podle stavu</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="tiresStatusChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-6">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Pneumatiky podle typu</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="tiresTypeChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Servisní zásahy v průběhu času</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="serviceActionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Stav zásob pneumatik</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          {% for type in low_stock_types %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0">{{ type.brand }} {{ type.model }}</h6>
+                <small class="text-muted">{{ type.size }}</small>
+              </div>
+              <div class="text-end">
+                <h5 class="mb-0 {% if type.current_stock < type.min_stock_level %}text-danger{% endif %}">
+                  {{ type.current_stock }} / {{ type.min_stock_level }}
+                </h5>
+                <small class="text-muted">Na skladě / Minimum</small>
+              </div>
+            </div>
+            <div class="progress mt-2" style="height: 8px;">
+              {% set progress = (type.current_stock / type.min_stock_level * 100) %}
+              {% if progress < 50 %}
+                {% set color = "danger" %}
+              {% elif progress < 100 %}
+                {% set color = "warning" %}
+              {% else %}
+                {% set color = "success" %}
+              {% endif %}
+              <div class="progress-bar bg-{{ color }}" role="progressbar" style="width: {{ min(progress, 100) }}%" 
+                  aria-valuenow="{{ type.current_stock }}" aria-valuemin="0" aria-valuemax="{{ type.min_stock_level }}"></div>
+            </div>
+          </div>
+          {% else %}
+          <div class="list-group-item text-center py-4">
+            <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+            <p>Všechny typy pneumatik mají dostatečnou zásobu.</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-footer">
+        <a href="{{ url_for('list_purchase_requests') }}" class="btn btn-sm btn-primary w-100">
+          <i class="fas fa-shopping-cart"></i> Správa žádostí o nákup
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-12">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Průměrná životnost podle typu pneumatik (km)</h5>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="showAllTypes">
+          <label class="form-check-label" for="showAllTypes">Zobrazit všechny typy</label>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="lifespanChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Aktuální problémy a upozornění -->
+<div class="card mb-4">
+  <div class="card-header bg-warning text-dark">
+    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Aktuální upozornění</h5>
+  </div>
+  <div class="card-body">
+    {% if alerts %}
+    <div class="table-responsive">
+      <table class="table table-sm table-hover">
+        <thead>
+          <tr>
+            <th>Typ upozornění</th>
+            <th>Detail</th>
+            <th>Priorita</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for alert in alerts %}
+          <tr>
+            <td>{{ alert.type }}</td>
+            <td>{{ alert.detail }}</td>
+            <td>
+              {% if alert.priority == 'vysoká' %}
+              <span class="badge bg-danger">Vysoká</span>
+              {% elif alert.priority == 'střední' %}
+              <span class="badge bg-warning text-dark">Střední</span>
+              {% else %}
+              <span class="badge bg-info">Nízká</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ alert.action_link }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i> Zobrazit
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+      <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+      <h5>Žádná aktivní upozornění</h5>
+      <p class="text-muted">Momentálně nejsou žádné naléhavé problémy, které by vyžadovaly vaši pozornost.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Získání kontextu pro grafy
+    const tiresStatusChartCtx = document.getElementById('tiresStatusChart').getContext('2d');
+    const tiresTypeChartCtx = document.getElementById('tiresTypeChart').getContext('2d');
+    const serviceActionChartCtx = document.getElementById('serviceActionChart').getContext('2d');
+    const lifespanChartCtx = document.getElementById('lifespanChart').getContext('2d');
+    
+    // Konfigurace barev
+    const colors = [
+      'rgba(54, 162, 235, 0.8)',
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(255, 159, 64, 0.8)',
+      'rgba(153, 102, 255, 0.8)',
+      'rgba(255, 206, 86, 0.8)',
+      'rgba(231, 233, 237, 0.8)'
+    ];
+    
+    // Pneumatiky podle stavu
+    const tiresStatusChart = new Chart(tiresStatusChartCtx, {
+      type: 'pie',
+      data: {
+        labels: {{ tire_status_stats.labels|tojson }},
+        datasets: [{
+          data: {{ tire_status_stats.data|tojson }},
+          backgroundColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.raw || 0;
+                const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                const percentage = Math.round((value / total) * 100);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Pneumatiky podle typu
+    const tiresTypeChart = new Chart(tiresTypeChartCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ tire_types_stats.labels|tojson }},
+        datasets: [{
+          data: {{ tire_types_stats.data|tojson }},
+          backgroundColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+          }
+        }
+      }
+    });
+    
+    // Servisní zásahy v průběhu času
+    const serviceActionChart = new Chart(serviceActionChartCtx, {
+      type: 'line',
+      data: {
+        labels: {{ service_stats.labels|tojson }},
+        datasets: [{
+          label: 'Počet servisních zásahů',
+          data: {{ service_stats.data|tojson }},
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
+          }
+        }
+      }
+    });
+    
+    // Průměrná životnost podle typu pneumatik
+    const lifespanChart = new Chart(lifespanChartCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ lifespan_stats.labels|tojson }},
+        datasets: [{
+          label: 'Průměrná životnost (km)',
+          data: {{ lifespan_stats.data|tojson }},
+          backgroundColor: 'rgba(54, 162, 235, 0.8)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Kilometrů'
+            }
+          }
+        }
+      }
+    });
+    
+    // Přepínač pro zobrazení všech typů pneumatik
+    const showAllTypesSwitch = document.getElementById('showAllTypes');
+    if (showAllTypesSwitch) {
+      showAllTypesSwitch.addEventListener('change', function() {
+        const url = this.checked ? "{{ url_for('get_lifespan_stats', show_all=1) }}" : "{{ url_for('get_lifespan_stats') }}";
+        
+        fetch(url)
+          .then(response => response.json())
+          .then(data => {
+            lifespanChart.data.labels = data.labels;
+            lifespanChart.data.datasets[0].data = data.data;
+            lifespanChart.update();
+          });
+      });
+    }
+    
+    // Aktualizace dat
+    const refreshButton = document.getElementById('btn-refresh');
+    if (refreshButton) {
+      refreshButton.addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aktualizuji...';
+        
+        Promise.all([
+          fetch("{{ url_for('get_tire_status_stats') }}").then(response => response.json()),
+          fetch("{{ url_for('get_tire_types_stats') }}").then(response => response.json()),
+          fetch("{{ url_for('get_service_stats') }}").then(response => response.json()),
+          fetch("{{ url_for('get_lifespan_stats') }}").then(response => response.json())
+        ]).then(([statusData, typesData, serviceData, lifespanData]) => {
+          // Aktualizace grafů
+          tiresStatusChart.data.labels = statusData.labels;
+          tiresStatusChart.data.datasets[0].data = statusData.data;
+          tiresStatusChart.update();
+          
+          tiresTypeChart.data.labels = typesData.labels;
+          tiresTypeChart.data.datasets[0].data = typesData.data;
+          tiresTypeChart.update();
+          
+          serviceActionChart.data.labels = serviceData.labels;
+          serviceActionChart.data.datasets[0].data = serviceData.data;
+          serviceActionChart.update();
+          
+          lifespanChart.data.labels = lifespanData.labels;
+          lifespanChart.data.datasets[0].data = lifespanData.data;
+          lifespanChart.update();
+          
+          // Obnovení tlačítka
+          this.disabled = false;
+          this.innerHTML = '<i class="fas fa-sync-alt"></i> Aktualizovat data';
+          
+          // Upozornění o úspěšné aktualizaci
+          const alertDiv = document.createElement('div');
+          alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+          alertDiv.innerHTML = `
+            <strong>Úspěch!</strong> Data byla úspěšně aktualizována.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zavřít"></button>
+          `;
+          document.body.appendChild(alertDiv);
+          
+          // Automatické zavření upozornění po 3 sekundách
+          setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alertDiv);
+            bsAlert.close();
+          }, 3000);
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}

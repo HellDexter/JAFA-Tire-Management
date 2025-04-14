@@ -1,0 +1,96 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Reporty{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-chart-bar"></i> Reporty a statistiky</h1>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Dostupné reporty a analýzy</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tachometer-alt fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Životnost pneumatik</h5>
+                                <p class="card-text">Statistiky průměrné životnosti pneumatik podle značky a modelu.</p>
+                                <a href="{{ url_for('report_tire_lifespan') }}" class="btn btn-primary">Zobrazit report</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Důvody demontáže</h5>
+                                <p class="card-text">Nejčastější důvody demontáže a vyřazení pneumatik z provozu.</p>
+                                <a href="{{ url_for('report_dismount_reasons') }}" class="btn btn-primary">Zobrazit report</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-boxes fa-3x text-danger mb-3"></i>
+                                <h5 class="card-title">Minimální zásoby</h5>
+                                <p class="card-text">Přehled typů pneumatik s aktuálním stavem pod minimální hladinou.</p>
+                                <a href="{{ url_for('report_low_stock') }}" class="btn btn-primary">Zobrazit report</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Generování vlastních reportů</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="report-type" class="form-label">Typ reportu</label>
+                    <select class="form-select" id="report-type">
+                        <option value="tire-statistics">Statistiky pneumatik</option>
+                        <option value="vehicle-statistics">Statistiky vozidel</option>
+                        <option value="monthly-changes">Měsíční přehled změn</option>
+                        <option value="cost-analysis">Analýza nákladů</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="from-date" class="form-label">Od data</label>
+                    <input type="date" class="form-control" id="from-date">
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="to-date" class="form-label">Do data</label>
+                    <input type="date" class="form-control" id="to-date">
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-end">
+            <button type="button" class="btn btn-primary" id="generate-report-btn">
+                <i class="fas fa-file-export"></i> Generovat report
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,384 @@
+{% extends 'layout.html' %}
+
+{% block title %} - API Dokumentace{% endblock %}
+
+{% block extra_css %}
+<style>
+    .endpoint {
+        margin-bottom: 2rem;
+        border-left: 4px solid #0d6efd;
+        padding-left: 1rem;
+    }
+    .method {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        color: white;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    .method-get {
+        background-color: #0d6efd;
+    }
+    .method-post {
+        background-color: #198754;
+    }
+    .method-put {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .method-delete {
+        background-color: #dc3545;
+    }
+    .endpoint-path {
+        font-family: monospace;
+        font-size: 1.1rem;
+        background-color: #f8f9fa;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+    }
+    .param-name {
+        font-family: monospace;
+        font-weight: bold;
+    }
+    pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-plug"></i> API Dokumentace</h1>
+</div>
+
+<div class="alert alert-info mb-4">
+    <h5 class="alert-heading">Informace o API</h5>
+    <p>Toto API umožňuje přístup k datům JAFA Tire Management prostřednictvím HTTP požadavků. API používá JSON pro formátování dat.</p>
+    <p>Pro přístup k API je vyžadována autentizace. Všechny požadavky musí být autentizovány stejně jako přístup do webového rozhraní.</p>
+</div>
+
+<h2 class="mb-3">Koncové body API</h2>
+
+<!-- Pneumatiky -->
+<h3 class="mt-4 mb-3"><i class="fas fa-dharmachakra"></i> Pneumatiky</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/tires</span>
+    </div>
+    <p class="mt-2">Vrátí seznam všech pneumatik v systému.</p>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "tires": [
+    {
+      "id": 1,
+      "serial_number": "ABC123456",
+      "status": "skladem",
+      "current_tread_depth": 10.5,
+      "total_mileage": 0,
+      "tire_type": {
+        "id": 1,
+        "brand": "Michelin",
+        "model": "X MultiWay 3D XZE",
+        "size": "315/80 R22.5"
+      },
+      "position": null
+    },
+    // ...další pneumatiky
+  ]
+}</pre>
+</div>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/tires/{tire_id}</span>
+    </div>
+    <p class="mt-2">Vrátí detailní informace o konkrétní pneumatice.</p>
+    <h6>Parametry URL:</h6>
+    <ul>
+        <li><span class="param-name">tire_id</span> - ID pneumatiky</li>
+    </ul>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "id": 1,
+  "serial_number": "ABC123456",
+  "status": "skladem",
+  "current_tread_depth": 10.5,
+  "total_mileage": 0,
+  "tire_type": {
+    "id": 1,
+    "brand": "Michelin",
+    "model": "X MultiWay 3D XZE",
+    "size": "315/80 R22.5"
+  },
+  "position": null,
+  "history": [
+    {
+      "id": 1,
+      "action_type": "příjem",
+      "action_date": "2025-01-15 14:30:00",
+      "mileage_at_action": 0,
+      "tread_depth_at_action": 15.0
+    }
+    // ...další historie
+  ]
+}</pre>
+</div>
+
+<!-- Vozidla -->
+<h3 class="mt-5 mb-3"><i class="fas fa-truck"></i> Vozidla</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/vehicles</span>
+    </div>
+    <p class="mt-2">Vrátí seznam všech vozidel v systému.</p>
+    <h6>Parametry dotazu:</h6>
+    <ul>
+        <li><span class="param-name">type</span> (volitelný) - Filtruje vozidla podle typu (např. "tahač", "návěs")</li>
+    </ul>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "vehicles": [
+    {
+      "id": 1,
+      "registration_number": "1AB 1234",
+      "vehicle_type": "tahač",
+      "brand": "Volvo",
+      "model": "FH16",
+      "current_mileage": 150000,
+      "combination_id": 1
+    },
+    // ...další vozidla
+  ]
+}</pre>
+</div>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/vehicles/{vehicle_id}</span>
+    </div>
+    <p class="mt-2">Vrátí detailní informace o konkrétním vozidle včetně pozic pneumatik.</p>
+    <h6>Parametry URL:</h6>
+    <ul>
+        <li><span class="param-name">vehicle_id</span> - ID vozidla</li>
+    </ul>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "id": 1,
+  "registration_number": "1AB 1234",
+  "vehicle_type": "tahač",
+  "brand": "Volvo",
+  "model": "FH16",
+  "year_of_manufacture": 2020,
+  "vin": "YS2R4X20002121212",
+  "current_mileage": 150000,
+  "combination": {
+    "id": 1,
+    "name": "Souprava 1"
+  },
+  "tire_positions": [
+    {
+      "id": 1,
+      "position_code": "L1",
+      "position_description": "Levá přední",
+      "tire": {
+        "id": 2,
+        "serial_number": "XYZ987654",
+        "current_tread_depth": 8.5,
+        "tire_type": {
+          "brand": "Continental",
+          "model": "HDR2+",
+          "size": "315/80 R22.5"
+        }
+      }
+    },
+    // ...další pozice
+  ]
+}</pre>
+</div>
+
+<!-- Kombinace vozidel -->
+<h3 class="mt-5 mb-3"><i class="fas fa-link"></i> Kombinace vozidel</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/combinations</span>
+    </div>
+    <p class="mt-2">Vrátí seznam všech kombinací vozidel (souprav).</p>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "combinations": [
+    {
+      "id": 1,
+      "name": "Souprava 1",
+      "description": "Mezinárodní doprava",
+      "is_active": true,
+      "vehicles": [
+        {
+          "id": 1,
+          "registration_number": "1AB 1234",
+          "vehicle_type": "tahač"
+        },
+        {
+          "id": 2,
+          "registration_number": "2CD 5678",
+          "vehicle_type": "návěs"
+        }
+      ]
+    },
+    // ...další kombinace
+  ]
+}</pre>
+</div>
+
+<!-- Typy pneumatik -->
+<h3 class="mt-5 mb-3"><i class="fas fa-list"></i> Typy pneumatik</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/tire-types</span>
+    </div>
+    <p class="mt-2">Vrátí seznam všech typů pneumatik včetně dostupných zásob.</p>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "tire_types": [
+    {
+      "id": 1,
+      "brand": "Michelin",
+      "model": "X MultiWay 3D XZE",
+      "size": "315/80 R22.5",
+      "usage_type": "řídící",
+      "price": 15600,
+      "supplier": {
+        "id": 1,
+        "name": "Pneumatiky s.r.o."
+      },
+      "stock_count": 5
+    },
+    // ...další typy
+  ]
+}</pre>
+</div>
+
+<!-- Servisní zásahy -->
+<h3 class="mt-5 mb-3"><i class="fas fa-tools"></i> Servisní zásahy</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/service-actions</span>
+    </div>
+    <p class="mt-2">Vrátí seznam servisních zásahů s možností filtrování podle data.</p>
+    <h6>Parametry dotazu:</h6>
+    <ul>
+        <li><span class="param-name">from_date</span> (volitelný) - Počáteční datum ve formátu YYYY-MM-DD</li>
+        <li><span class="param-name">to_date</span> (volitelný) - Koncové datum ve formátu YYYY-MM-DD</li>
+    </ul>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "service_actions": [
+    {
+      "id": 1,
+      "action_type": "měření dezénu",
+      "action_date": "2025-04-10 09:30:00",
+      "description": "Pravidelná kontrola hloubky dezénu",
+      "tire": {
+        "id": 2,
+        "serial_number": "XYZ987654",
+        "tire_type": {
+          "brand": "Continental",
+          "model": "HDR2+",
+          "size": "315/80 R22.5"
+        }
+      },
+      "technician": {
+        "id": 2,
+        "username": "technik"
+      }
+    },
+    // ...další zásahy
+  ]
+}</pre>
+</div>
+
+<!-- Statistiky -->
+<h3 class="mt-5 mb-3"><i class="fas fa-chart-pie"></i> Statistiky</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/stats/tires</span>
+    </div>
+    <p class="mt-2">Vrátí statistiky pneumatik.</p>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "status_counts": {
+    "skladem": 10,
+    "namontováno": 48,
+    "servis": 2,
+    "vyřazeno": 5
+  },
+  "type_counts": {
+    "Michelin": 25,
+    "Continental": 20,
+    "Bridgestone": 15,
+    "Goodyear": 5
+  },
+  "avg_lifespan_km": 120000
+}</pre>
+</div>
+
+<!-- Žádosti o nákup -->
+<h3 class="mt-5 mb-3"><i class="fas fa-shopping-cart"></i> Žádosti o nákup</h3>
+
+<div class="endpoint">
+    <div>
+        <span class="method method-get">GET</span>
+        <span class="endpoint-path">/api/purchase-requests</span>
+    </div>
+    <p class="mt-2">Vrátí seznam žádostí o nákup pneumatik.</p>
+    <h6>Parametry dotazu:</h6>
+    <ul>
+        <li><span class="param-name">status</span> (volitelný) - Filtruje žádosti podle stavu (např. "požadováno", "schváleno", "objednáno", "dodáno")</li>
+    </ul>
+    <h6>Příklad odpovědi:</h6>
+    <pre>{
+  "purchase_requests": [
+    {
+      "id": 1,
+      "tire_type": {
+        "id": 1,
+        "brand": "Michelin",
+        "model": "X MultiWay 3D XZE",
+        "size": "315/80 R22.5"
+      },
+      "quantity": 4,
+      "status": "schváleno",
+      "priority": "normální",
+      "request_date": "2025-04-05",
+      "requester": {
+        "id": 2,
+        "username": "technik"
+      }
+    },
+    // ...další žádosti
+  ]
+}</pre>
+</div>
+
+<div class="alert alert-warning mt-5">
+    <h5 class="alert-heading">Poznámka k vývoji API</h5>
+    <p>Toto API je ve vývoji a může se v průběhu času měnit. Budoucí aktualizace budou zahrnovat endpointy pro vytváření, aktualizaci a mazání zdrojů.</p>
+</div>
+
+{% endblock %}

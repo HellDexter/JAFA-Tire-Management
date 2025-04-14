@@ -1,0 +1,146 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Servisní zásahy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tools"></i> Servisní zásahy</h1>
+    <div>
+        <a href="{{ url_for('add_service_action') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nový servisní zásah
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Seznam servisních zásahů na pneumatikách</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" id="table-filter" class="form-control" placeholder="Vyhledat servisní zásah...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="data-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Pneumatika</th>
+                        <th>Typ pneumatiky</th>
+                        <th>Typ zásahu</th>
+                        <th>Vozidlo</th>
+                        <th>Technik</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for action in service_actions %}
+                    <tr>
+                        <td>{{ action.action_date.strftime('%d.%m.%Y') }}</td>
+                        <td>
+                            <a href="{{ url_for('tire_detail', id=action.tire_id) }}">
+                                {{ action.tire.serial_number }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ action.tire.tire_type.brand }} {{ action.tire.tire_type.model }}<br>
+                            <small>{{ action.tire.tire_type.size }}</small>
+                        </td>
+                        <td>{{ action.action_type }}</td>
+                        <td>
+                            {% if action.tire.position and action.tire.position.vehicle %}
+                            <a href="{{ url_for('vehicle_detail', id=action.tire.position.vehicle.id) }}">
+                                {{ action.tire.position.vehicle.registration_number }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">Skladem</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ action.technician.username if action.technician else '-' }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-primary" title="Zobrazit detail"
+                                    data-bs-toggle="modal" data-bs-target="#detailModal" 
+                                    data-action-id="{{ action.id }}"
+                                    data-date="{{ action.action_date.strftime('%d.%m.%Y') }}"
+                                    data-tire="{{ action.tire.serial_number }}"
+                                    data-tire-type="{{ action.tire.tire_type.brand }} {{ action.tire.tire_type.model }} {{ action.tire.tire_type.size }}"
+                                    data-action-type="{{ action.action_type }}"
+                                    data-description="{{ action.description }}"
+                                    data-note="{{ action.note or '' }}"
+                                    data-technician="{{ action.technician.username if action.technician else '-' }}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">Žádné servisní zásahy nebyly nalezeny.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro detail servisního zásahu -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail servisního zásahu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Datum zásahu:</dt>
+                    <dd class="col-sm-8" id="detail-date"></dd>
+                    
+                    <dt class="col-sm-4">Pneumatika:</dt>
+                    <dd class="col-sm-8" id="detail-tire"></dd>
+                    
+                    <dt class="col-sm-4">Typ pneumatiky:</dt>
+                    <dd class="col-sm-8" id="detail-tire-type"></dd>
+                    
+                    <dt class="col-sm-4">Typ zásahu:</dt>
+                    <dd class="col-sm-8" id="detail-action-type"></dd>
+                    
+                    <dt class="col-sm-4">Popis:</dt>
+                    <dd class="col-sm-8" id="detail-description"></dd>
+                    
+                    <dt class="col-sm-4">Poznámka:</dt>
+                    <dd class="col-sm-8" id="detail-note"></dd>
+                    
+                    <dt class="col-sm-4">Technik:</dt>
+                    <dd class="col-sm-8" id="detail-technician"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zavřít</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializace modalu pro detail
+        const detailModal = document.getElementById('detailModal');
+        if (detailModal) {
+            detailModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                
+                document.getElementById('detail-date').textContent = button.getAttribute('data-date');
+                document.getElementById('detail-tire').textContent = button.getAttribute('data-tire');
+                document.getElementById('detail-tire-type').textContent = button.getAttribute('data-tire-type');
+                document.getElementById('detail-action-type').textContent = button.getAttribute('data-action-type');
+                document.getElementById('detail-description').textContent = button.getAttribute('data-description');
+                document.getElementById('detail-note').textContent = button.getAttribute('data-note') || '-';
+                document.getElementById('detail-technician').textContent = button.getAttribute('data-technician');
+            });
+        }
+    });
+</script>
+{% endblock %}

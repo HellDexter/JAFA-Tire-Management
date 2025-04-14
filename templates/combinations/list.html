@@ -1,0 +1,70 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Soupravy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-link"></i> Soupravy vozidel</h1>
+    <div>
+        <a href="{{ url_for('add_combination') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Přidat soupravu
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Seznam souprav</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" id="table-filter" class="form-control" placeholder="Vyhledat soupravu...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="data-table">
+                <thead>
+                    <tr>
+                        <th>Název</th>
+                        <th>Popis</th>
+                        <th>Počet vozidel</th>
+                        <th>Stav</th>
+                        <th>Vytvořeno</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for combination in combinations %}
+                    <tr>
+                        <td>{{ combination.name }}</td>
+                        <td>{{ combination.description|truncate(50) if combination.description else '-' }}</td>
+                        <td>{{ combination.vehicles|length }}</td>
+                        <td>
+                            {% if combination.is_active %}
+                            <span class="badge bg-success">Aktivní</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Neaktivní</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ combination.created_at.strftime('%d.%m.%Y') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('combination_detail', id=combination.id) }}" class="btn btn-outline-primary" title="Detail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('edit_combination', id=combination.id) }}" class="btn btn-outline-secondary" title="Upravit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Žádné soupravy nebyly nalezeny.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Report důvodů demontáže{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-exclamation-triangle"></i> Důvody demontáže pneumatik</h1>
+    <div>
+        <a href="{{ url_for('reports') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na reporty
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Nejčastější důvody demontáže/vyřazení pneumatik</h5>
+    </div>
+    <div class="card-body">
+        <div class="chart-container">
+            <canvas id="reasons-chart" data-chart="{{ {
+                'labels': reason_data|map(attribute='action_reason')|list|tojson,
+                'data': reason_data|map(attribute='reason_count')|list|tojson
+            }|tojson }}"></canvas>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Důvod demontáže</th>
+                        <th>Počet pneumatik</th>
+                        <th>Procentuální podíl</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set total = reason_data|map(attribute='reason_count')|sum %}
+                    {% for item in reason_data %}
+                    <tr>
+                        <td>{{ item.action_reason }}</td>
+                        <td>{{ item.reason_count }}</td>
+                        <td>{{ ((item.reason_count / total) * 100)|round(1) if total > 0 else 0 }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">Žádná data nejsou k dispozici.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Analýza důvodů demontáže</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Důvody demontáže podle značky</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Porovnání nejčastějších důvodů demontáže podle výrobce pneumatik.</p>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Pro generování této statistiky je potřeba mít dostatek dat v systému.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Důvody demontáže podle pozice</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Porovnání nejčastějších důvodů demontáže podle pozice pneumatiky na vozidle.</p>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Pro generování této statistiky je potřeba mít dostatek dat v systému.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-success">
+            <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Pravidelná analýza důvodů demontáže může pomoci identifikovat problémové oblasti a přijmout opatření ke zvýšení životnosti pneumatik.
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> <strong>Doporučení:</strong> Pro dosažení vyšší přesnosti statistik je důležité, aby technici při demontáži důsledně zaznamenávali důvody a pořizovali fotografickou dokumentaci.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const reasonsChart = document.getElementById('reasons-chart');
+        if (reasonsChart) {
+            const ctx = reasonsChart.getContext('2d');
+            const chartData = JSON.parse(reasonsChart.getAttribute('data-chart'));
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        data: chartData.data,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(199, 199, 199, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(199, 199, 199, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Žádosti o nákup{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-shopping-cart"></i> Žádosti o nákup</h1>
+    <div>
+        <a href="{{ url_for('add_purchase_request') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nová žádost
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Seznam žádostí o nákup pneumatik</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" id="table-filter" class="form-control" placeholder="Vyhledat žádost...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Typ pneumatiky</th>
+                        <th>Množství</th>
+                        <th>Datum žádosti</th>
+                        <th>Stav</th>
+                        <th>Žadatel</th>
+                        <th>Priorita</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in purchase_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>
+                            {{ request.tire_type.brand }} {{ request.tire_type.model }}<br>
+                            <small>{{ request.tire_type.size }}</small>
+                        </td>
+                        <td>{{ request.quantity }}</td>
+                        <td>{{ request.request_date.strftime('%d.%m.%Y') }}</td>
+                        <td>
+                            {% if request.status == 'požadováno' %}
+                            <span class="badge bg-primary">Požadováno</span>
+                            {% elif request.status == 'schváleno' %}
+                            <span class="badge bg-success">Schváleno</span>
+                            {% elif request.status == 'objednáno' %}
+                            <span class="badge bg-warning text-dark">Objednáno</span>
+                            {% elif request.status == 'dodáno' %}
+                            <span class="badge bg-info">Dodáno</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ request.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ request.requester.username }}</td>
+                        <td>
+                            {% if request.priority == 'nízká' %}
+                            <span class="badge bg-secondary">Nízká</span>
+                            {% elif request.priority == 'normální' %}
+                            <span class="badge bg-primary">Normální</span>
+                            {% elif request.priority == 'vysoká' %}
+                            <span class="badge bg-warning text-dark">Vysoká</span>
+                            {% elif request.priority == 'urgentní' %}
+                            <span class="badge bg-danger">Urgentní</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ request.priority }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                {% if request.status == 'požadováno' and (current_user.role == 'admin' or current_user.role == 'manager') %}
+                                <form action="{{ url_for('approve_purchase_request', id=request.id) }}" method="post">
+                                    <button type="submit" class="btn btn-outline-success" title="Schválit">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                {% if request.status == 'schváleno' %}
+                                <button type="button" class="btn btn-outline-warning" title="Označit jako objednané"
+                                        data-bs-toggle="modal" data-bs-target="#orderModal" 
+                                        data-id="{{ request.id }}">
+                                    <i class="fas fa-truck"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if request.status == 'objednáno' %}
+                                <form action="{{ url_for('deliver_purchase_request', id=request.id) }}" method="post">
+                                    <button type="submit" class="btn btn-outline-info" title="Označit jako dodané">
+                                        <i class="fas fa-box-open"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <button type="button" class="btn btn-outline-primary" title="Zobrazit detail"
+                                        data-bs-toggle="modal" data-bs-target="#detailModal" 
+                                        data-id="{{ request.id }}"
+                                        data-tire-type="{{ request.tire_type.brand }} {{ request.tire_type.model }} {{ request.tire_type.size }}"
+                                        data-quantity="{{ request.quantity }}"
+                                        data-priority="{{ request.priority }}"
+                                        data-status="{{ request.status }}"
+                                        data-requester="{{ request.requester.username }}"
+                                        data-request-date="{{ request.request_date.strftime('%d.%m.%Y') }}"
+                                        data-approval-date="{{ request.approval_date.strftime('%d.%m.%Y') if request.approval_date else '' }}"
+                                        data-approver="{{ request.approver.username if request.approver else '' }}"
+                                        data-note="{{ request.note or '' }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">Žádné žádosti o nákup nebyly nalezeny.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro detail žádosti -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detail žádosti o nákup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Typ pneumatiky:</dt>
+                    <dd class="col-sm-8" id="detail-tire-type"></dd>
+                    
+                    <dt class="col-sm-4">Množství:</dt>
+                    <dd class="col-sm-8" id="detail-quantity"></dd>
+                    
+                    <dt class="col-sm-4">Priorita:</dt>
+                    <dd class="col-sm-8" id="detail-priority"></dd>
+                    
+                    <dt class="col-sm-4">Stav:</dt>
+                    <dd class="col-sm-8" id="detail-status"></dd>
+                    
+                    <dt class="col-sm-4">Žadatel:</dt>
+                    <dd class="col-sm-8" id="detail-requester"></dd>
+                    
+                    <dt class="col-sm-4">Datum žádosti:</dt>
+                    <dd class="col-sm-8" id="detail-request-date"></dd>
+                    
+                    <dt class="col-sm-4">Datum schválení:</dt>
+                    <dd class="col-sm-8" id="detail-approval-date"></dd>
+                    
+                    <dt class="col-sm-4">Schválil:</dt>
+                    <dd class="col-sm-8" id="detail-approver"></dd>
+                    
+                    <dt class="col-sm-4">Poznámka:</dt>
+                    <dd class="col-sm-8" id="detail-note"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zavřít</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro označení jako objednané -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Označit jako objednané</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="order-form" action="" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="expected-delivery-date" class="form-label">Očekávané datum dodání</label>
+                        <input type="date" class="form-control" id="expected-delivery-date" name="expected_delivery_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="order-note" class="form-label">Poznámka k objednávce</label>
+                        <textarea class="form-control" id="order-note" name="order_note" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                    <button type="submit" class="btn btn-primary">Označit jako objednané</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializace modalu pro detail
+        const detailModal = document.getElementById('detailModal');
+        if (detailModal) {
+            detailModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                
+                document.getElementById('detail-tire-type').textContent = button.getAttribute('data-tire-type');
+                document.getElementById('detail-quantity').textContent = button.getAttribute('data-quantity');
+                document.getElementById('detail-priority').textContent = button.getAttribute('data-priority');
+                document.getElementById('detail-status').textContent = button.getAttribute('data-status');
+                document.getElementById('detail-requester').textContent = button.getAttribute('data-requester');
+                document.getElementById('detail-request-date').textContent = button.getAttribute('data-request-date');
+                document.getElementById('detail-approval-date').textContent = button.getAttribute('data-approval-date') || '-';
+                document.getElementById('detail-approver').textContent = button.getAttribute('data-approver') || '-';
+                document.getElementById('detail-note').textContent = button.getAttribute('data-note') || '-';
+            });
+        }
+        
+        // Inicializace modalu pro objednání
+        const orderModal = document.getElementById('orderModal');
+        if (orderModal) {
+            orderModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                
+                const orderForm = document.getElementById('order-form');
+                orderForm.action = "{{ url_for('order_purchase_request', id=0) }}".replace('0', id);
+            });
+        }
+    });
+</script>
+{% endblock %}

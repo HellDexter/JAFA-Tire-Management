@@ -1,0 +1,117 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Typy pneumatik{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-list"></i> Typy pneumatik</h1>
+    <div>
+        <a href="{{ url_for('add_tire_type') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Přidat typ pneumatiky
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Seznam typů pneumatik</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <input type="text" id="table-filter" class="form-control" placeholder="Vyhledat typ pneumatiky...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="data-table">
+                <thead>
+                    <tr>
+                        <th>Značka</th>
+                        <th>Model</th>
+                        <th>Rozměr</th>
+                        <th>Použití</th>
+                        <th>Dodavatel</th>
+                        <th>Cena</th>
+                        <th>Min. zásoba</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tire_type in tire_types %}
+                    <tr>
+                        <td>{{ tire_type.brand }}</td>
+                        <td>{{ tire_type.model }}</td>
+                        <td>{{ tire_type.size }}</td>
+                        <td>{{ tire_type.usage_type }}</td>
+                        <td>{{ tire_type.supplier.name if tire_type.supplier else '-' }}</td>
+                        <td>{{ tire_type.price or 0 }} Kč</td>
+                        <td>{{ tire_type.min_stock_level }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('edit_tire_type', id=tire_type.id) }}" class="btn btn-outline-primary" title="Upravit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger btn-delete-confirm" 
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                                        data-id="{{ tire_type.id }}" 
+                                        data-name="{{ tire_type.brand }} {{ tire_type.model }} {{ tire_type.size }}" title="Smazat">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">Žádné typy pneumatik nebyly nalezeny.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pro smazání typu pneumatiky -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Smazat typ pneumatiky</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Opravdu chcete smazat typ pneumatiky <strong id="delete-tire-type-name"></strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Upozornění: Tento typ můžete smazat pouze pokud k němu nejsou přiřazeny žádné pneumatiky!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                <form id="delete-form" action="" method="post">
+                    <button type="submit" class="btn btn-danger">Smazat</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializace modalu pro mazání
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const name = button.getAttribute('data-name');
+                
+                const deleteForm = document.getElementById('delete-form');
+                const deleteTireTypeName = document.getElementById('delete-tire-type-name');
+                
+                deleteForm.action = "{{ url_for('delete_tire_type', id=0) }}".replace('0', id);
+                deleteTireTypeName.textContent = name;
+            });
+        }
+    });
+</script>
+{% endblock %}

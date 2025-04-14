@@ -1,0 +1,292 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Detail soupravy{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-link"></i> Detail soupravy</h1>
+    <div>
+        <a href="{{ url_for('edit_combination', id=combination.id) }}" class="btn btn-secondary me-2">
+            <i class="fas fa-edit"></i> Upravit
+        </a>
+        <a href="{{ url_for('list_combinations') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Základní informace o soupravě -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Základní informace</h5>
+                    <span class="badge {{ 'bg-success' if combination.is_active else 'bg-secondary' }}">
+                        {{ 'Aktivní' if combination.is_active else 'Neaktivní' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <h4 class="mb-3">{{ combination.name }}</h4>
+                        {% if combination.description %}
+                        <p>{{ combination.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <strong>Vytvořeno:</strong> {{ combination.created_at.strftime('%d.%m.%Y') }}
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <strong>Počet vozidel:</strong> {{ vehicles|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vozidla v soupravě -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-truck"></i> Vozidla v soupravě</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% set truck = None %}
+            {% set trailer = None %}
+            
+            {% for vehicle in vehicles %}
+                {% if vehicle.vehicle_type == 'tahač' %}
+                    {% set truck = vehicle %}
+                {% elif vehicle.vehicle_type == 'návěs' %}
+                    {% set trailer = vehicle %}
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Tahač -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-truck"></i> Tahač</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if truck %}
+                        <div class="row">
+                            <div class="col-md-12 mb-3 text-center">
+                                <div class="license-plate d-inline-block p-2 border border-secondary rounded">
+                                    <h4 class="mb-0">{{ truck.registration_number }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong>Značka:</strong> {{ truck.brand or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Model:</strong> {{ truck.model or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Rok výroby:</strong> {{ truck.year_of_manufacture or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Aktuální nájezd:</strong> {{ truck.current_mileage or 0 }} km
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="{{ url_for('vehicle_detail', id=truck.id) }}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i> Detail vozidla
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> K této soupravě není přiřazen žádný tahač.
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Přidat tahač
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Návěs -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-trailer"></i> Návěs</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if trailer %}
+                        <div class="row">
+                            <div class="col-md-12 mb-3 text-center">
+                                <div class="license-plate d-inline-block p-2 border border-secondary rounded">
+                                    <h4 class="mb-0">{{ trailer.registration_number }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong>Značka:</strong> {{ trailer.brand or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Model:</strong> {{ trailer.model or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Rok výroby:</strong> {{ trailer.year_of_manufacture or '-' }}
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <strong>Aktuální nájezd:</strong> {{ trailer.current_mileage or 0 }} km
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="{{ url_for('vehicle_detail', id=trailer.id) }}" class="btn btn-primary">
+                                <i class="fas fa-eye"></i> Detail vozidla
+                            </a>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> K této soupravě není přiřazen žádný návěs.
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="{{ url_for('add_vehicle') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Přidat návěs
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ostatní vozidla -->
+        {% set other_vehicles = [] %}
+        {% for v in vehicles %}
+            {% if v.vehicle_type != 'tahač' and v.vehicle_type != 'návěs' %}
+                {% set _ = other_vehicles.append(v) %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if other_vehicles %}
+        <div class="mt-4">
+            <h5>Další vozidla v soupravě</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>SPZ</th>
+                            <th>Typ</th>
+                            <th>Značka</th>
+                            <th>Model</th>
+                            <th>Nájezd</th>
+                            <th>Akce</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in other_vehicles %}
+                        <tr>
+                            <td>{{ vehicle.registration_number }}</td>
+                            <td>{{ vehicle.vehicle_type }}</td>
+                            <td>{{ vehicle.brand or '-' }}</td>
+                            <td>{{ vehicle.model or '-' }}</td>
+                            <td>{{ vehicle.current_mileage or 0 }} km</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('vehicle_detail', id=vehicle.id) }}" class="btn btn-outline-primary" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_vehicle', id=vehicle.id) }}" class="btn btn-outline-secondary" title="Upravit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Přehled pneumatik -->
+        <div class="mt-4">
+            <h5>Přehled pneumatik na soupravě</h5>
+            
+            {% set tires_on_combination = [] %}
+            {% for vehicle in vehicles %}
+                {% for position in vehicle.tire_positions %}
+                    {% if position.tire %}
+                        {% set _ = tires_on_combination.append((position.tire, vehicle, position)) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            
+            {% if tires_on_combination %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Pneumatika</th>
+                            <th>Značka/Model</th>
+                            <th>Rozměr</th>
+                            <th>Vozidlo</th>
+                            <th>Pozice</th>
+                            <th>Dezén (mm)</th>
+                            <th>Opotřebení</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tire, vehicle, position in tires_on_combination %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('tire_detail', id=tire.id) }}">
+                                    {{ tire.serial_number }}
+                                </a>
+                            </td>
+                            <td>{{ tire.tire_type.brand }} {{ tire.tire_type.model }}</td>
+                            <td>{{ tire.tire_type.size }}</td>
+                            <td>
+                                <a href="{{ url_for('vehicle_detail', id=vehicle.id) }}">
+                                    {{ vehicle.registration_number }}
+                                </a>
+                            </td>
+                            <td>{{ position.position_code }} - {{ position.position_description }}</td>
+                            <td>{{ tire.current_tread_depth|round(1) }}</td>
+                            <td>
+                                {% set wear_percentage = ((tire.initial_tread_depth - tire.current_tread_depth) / tire.initial_tread_depth * 100) if tire.initial_tread_depth > 0 else 0 %}
+                                {% if wear_percentage > 75 %}
+                                <span class="badge bg-danger">{{ wear_percentage|round(1) }}%</span>
+                                {% elif wear_percentage > 50 %}
+                                <span class="badge bg-warning text-dark">{{ wear_percentage|round(1) }}%</span>
+                                {% elif wear_percentage > 0 %}
+                                <span class="badge bg-success">{{ wear_percentage|round(1) }}%</span>
+                                {% else %}
+                                <span class="badge bg-secondary">0%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> Na žádném vozidle v soupravě nejsou namontovány pneumatiky.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

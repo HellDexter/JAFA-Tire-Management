@@ -1,0 +1,253 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+    <div>
+        <a href="{{ url_for('add_tire') }}" class="btn btn-primary me-2">
+            <i class="fas fa-plus"></i> Přidat pneumatiku
+        </a>
+        <a href="{{ url_for('add_vehicle') }}" class="btn btn-secondary">
+            <i class="fas fa-plus"></i> Přidat vozidlo
+        </a>
+    </div>
+</div>
+
+<!-- Souhrnné statistiky -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-tile">
+            <i class="fas fa-dharmachakra"></i>
+            <h3>{{ tires_by_status.skladem }}</h3>
+            <p>Pneumatik skladem</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-tile">
+            <i class="fas fa-truck"></i>
+            <h3>{{ tires_by_status.namontovano }}</h3>
+            <p>Namontovaných pneumatik</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-tile">
+            <i class="fas fa-trash-alt"></i>
+            <h3>{{ tires_by_status.vyrazeno }}</h3>
+            <p>Vyřazených pneumatik</p>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-tile">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>{{ low_stock_tires|length }}</h3>
+            <p>Typů pod min. zásobou</p>
+        </div>
+    </div>
+</div>
+
+<!-- Aktivní soupravy -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Aktivní soupravy</h5>
+            </div>
+            <div class="card-body">
+                {% if active_combinations %}
+                <div class="row">
+                    {% for combination in active_combinations %}
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">{{ combination.name }}</h6>
+                            </div>
+                            <div class="card-body small">
+                                {% set truck = None %}
+                                {% set trailer = None %}
+                                {% for vehicle in combination.vehicles %}
+                                    {% if vehicle.vehicle_type == 'tahač' %}
+                                        {% set truck = vehicle %}
+                                    {% elif vehicle.vehicle_type == 'návěs' %}
+                                        {% set trailer = vehicle %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                <div class="mb-2">
+                                    {% if truck %}
+                                    <div><strong>Tahač:</strong> {{ truck.registration_number }} ({{ truck.brand }} {{ truck.model }})</div>
+                                    {% else %}
+                                    <div class="text-muted">Tahač nepřiřazen</div>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                    {% if trailer %}
+                                    <div><strong>Návěs:</strong> {{ trailer.registration_number }} ({{ trailer.brand }} {{ trailer.model }})</div>
+                                    {% else %}
+                                    <div class="text-muted">Návěs nepřiřazen</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <a href="{{ url_for('combination_detail', id=combination.id) }}" class="btn btn-sm btn-outline-primary">Detail</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">Žádné aktivní soupravy nebyly nalezeny.</p>
+                <a href="{{ url_for('add_combination') }}" class="btn btn-sm btn-primary">Vytvořit soupravu</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Pneumatiky pod minimální úrovní skladu -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Minimální zásoby</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_tires %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Značka</th>
+                                <th>Model</th>
+                                <th>Rozměr</th>
+                                <th>Min</th>
+                                <th>Skladem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tire_type, stock_count in low_stock_tires %}
+                            <tr>
+                                <td>{{ tire_type.brand }}</td>
+                                <td>{{ tire_type.model }}</td>
+                                <td>{{ tire_type.size }}</td>
+                                <td>{{ tire_type.min_stock_level }}</td>
+                                <td>{{ stock_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{{ url_for('report_low_stock') }}" class="btn btn-sm btn-outline-primary">Zobrazit vše</a>
+                {% else %}
+                <p class="text-muted">Všechny typy pneumatik mají dostatečné skladové zásoby.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Nedávné servisní zásahy -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools"></i> Nedávné servisní zásahy</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_service_actions %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Pneumatika</th>
+                                <th>Typ zásahu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for action in recent_service_actions %}
+                            <tr>
+                                <td>{{ action.action_date.strftime('%d.%m.%Y') }}</td>
+                                <td>
+                                    <a href="{{ url_for('tire_detail', id=action.tire_id) }}">
+                                        {{ action.tire.serial_number }}
+                                    </a>
+                                </td>
+                                <td>{{ action.action_type }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{{ url_for('list_service_actions') }}" class="btn btn-sm btn-outline-primary">Zobrazit vše</a>
+                {% else %}
+                <p class="text-muted">Žádné nedávné servisní zásahy.</p>
+                <a href="{{ url_for('add_service_action') }}" class="btn btn-sm btn-primary">Přidat servisní zásah</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Poslední pohyby pneumatik -->
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Poslední pohyby pneumatik</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_tire_history %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Pneumatika</th>
+                                <th>Vozidlo</th>
+                                <th>Pozice</th>
+                                <th>Akce</th>
+                                <th>Nájezd</th>
+                                <th>Technik</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for history in recent_tire_history %}
+                            <tr>
+                                <td>{{ history.action_date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('tire_detail', id=history.tire_id) }}">
+                                        {{ history.tire.serial_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if history.vehicle_id %}
+                                    <a href="{{ url_for('vehicle_detail', id=history.vehicle_id) }}">
+                                        {{ history.vehicle.registration_number }}
+                                    </a>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>{{ history.position_code }}</td>
+                                <td>
+                                    {% if history.action_type == 'montáž' %}
+                                    <span class="badge bg-success">montáž</span>
+                                    {% elif history.action_type == 'demontáž' %}
+                                    <span class="badge bg-warning text-dark">demontáž</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ history.mileage_at_action|default('-', true) }} km</td>
+                                <td>{{ history.technician.username if history.technician else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Žádné záznamy o pohybu pneumatik.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

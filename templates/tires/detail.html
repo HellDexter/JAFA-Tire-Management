@@ -1,0 +1,312 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Detail pneumatiky{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-dharmachakra"></i> Detail pneumatiky</h1>
+    <div>
+        <a href="{{ url_for('edit_tire', id=tire.id) }}" class="btn btn-secondary me-2">
+            <i class="fas fa-edit"></i> Upravit
+        </a>
+        <a href="{{ url_for('list_tires') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Základní informace -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Základní informace</h5>
+            </div>
+            <div class="card-body">
+                <div class="tire-details">
+                    <div class="tire-id mb-4">{{ tire.serial_number }}</div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Značka:</span>
+                                <span>{{ tire.tire_type.brand }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Model:</span>
+                                <span>{{ tire.tire_type.model }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Rozměr:</span>
+                                <span>{{ tire.tire_type.size }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Typ použití:</span>
+                                <span>{{ tire.tire_type.usage_type }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Stav:</span>
+                                <span>
+                                    {% if tire.status == 'skladem' %}
+                                    <span class="badge bg-success">Skladem</span>
+                                    {% elif tire.status == 'namontováno' %}
+                                    <span class="badge bg-primary">Namontováno</span>
+                                    {% elif tire.status == 'vyřazeno' %}
+                                    <span class="badge bg-danger">Vyřazeno</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ tire.status }}</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Datum výroby:</span>
+                                <span>{{ tire.manufacture_date.strftime('%d.%m.%Y') if tire.manufacture_date else '-' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Datum nákupu:</span>
+                                <span>{{ tire.purchase_date.strftime('%d.%m.%Y') if tire.purchase_date else '-' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <div class="tire-spec">
+                                <span class="label">Dodavatel:</span>
+                                <span>{{ tire.tire_type.supplier.name if tire.tire_type.supplier else '-' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if tire.note %}
+                <div class="mt-3">
+                    <strong>Poznámka:</strong>
+                    <p>{{ tire.note }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Technické údaje -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs"></i> Technické údaje</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="tire-spec">
+                            <span class="label">Počáteční hloubka dezénu:</span>
+                            <span>{{ tire.initial_tread_depth|round(1) }} mm</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="tire-spec">
+                            <span class="label">Aktuální hloubka dezénu:</span>
+                            <span>{{ tire.current_tread_depth|round(1) }} mm</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="tire-spec">
+                            <span class="label">Opotřebení:</span>
+                            {% set wear_percentage = ((tire.initial_tread_depth - tire.current_tread_depth) / tire.initial_tread_depth * 100) if tire.initial_tread_depth > 0 else 0 %}
+                            {% if wear_percentage > 75 %}
+                            <span class="badge bg-danger">{{ wear_percentage|round(1) }}%</span>
+                            {% elif wear_percentage > 50 %}
+                            <span class="badge bg-warning text-dark">{{ wear_percentage|round(1) }}%</span>
+                            {% elif wear_percentage > 0 %}
+                            <span class="badge bg-success">{{ wear_percentage|round(1) }}%</span>
+                            {% else %}
+                            <span class="badge bg-secondary">0%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="tire-spec">
+                            <span class="label">Celkový nájezd:</span>
+                            <span>{{ tire.total_mileage|default(0) }} km</span>
+                        </div>
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <div class="tire-spec">
+                            <span class="label">Průměrná životnost tohoto typu:</span>
+                            <span>{{ tire.tire_type.avg_lifespan_km|default(0) }} km</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Aktuální umístění:</h6>
+                    {% if tire.status == 'namontováno' and tire.position and tire.position.vehicle %}
+                    <div class="alert alert-primary">
+                        <strong>Vozidlo:</strong> 
+                        <a href="{{ url_for('vehicle_detail', id=tire.position.vehicle.id) }}">
+                            {{ tire.position.vehicle.registration_number }}
+                        </a>
+                        ({{ tire.position.vehicle.vehicle_type }})
+                        <br>
+                        <strong>Pozice:</strong> {{ tire.position.position_code }} - {{ tire.position.position_description }}
+                        
+                        <div class="mt-2">
+                            <a href="{{ url_for('tire_dismount', tire_id=tire.id) }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-unlink"></i> Demontovat
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary">
+                        {% if tire.status == 'skladem' %}
+                        <p class="mb-2">Pneumatika je momentálně na skladě.</p>
+                        <a href="{{ url_for('tire_mount') }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-link"></i> Namontovat
+                        </a>
+                        {% else %}
+                        <p class="mb-0">Pneumatika je vyřazena z provozu.</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historie pneumatiky -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history"></i> Historie pneumatiky</h5>
+    </div>
+    <div class="card-body">
+        {% if history %}
+        <div class="timeline">
+            {% for entry in history %}
+            <div class="timeline-item {{ 'mount' if entry.action_type == 'montáž' else 'dismount' if entry.action_type == 'demontáž' else '' }}">
+                <div class="timeline-date">{{ entry.action_date.strftime('%d.%m.%Y %H:%M') }}</div>
+                <div class="timeline-content">
+                    <h6>
+                        {% if entry.action_type == 'montáž' %}
+                        <i class="fas fa-link text-success"></i> Montáž
+                        {% elif entry.action_type == 'demontáž' %}
+                        <i class="fas fa-unlink text-warning"></i> Demontáž
+                        {% else %}
+                        <i class="fas fa-cog"></i> {{ entry.action_type }}
+                        {% endif %}
+                    </h6>
+                    
+                    <div class="mb-2">
+                        {% if entry.vehicle_id %}
+                        <strong>Vozidlo:</strong> 
+                        <a href="{{ url_for('vehicle_detail', id=entry.vehicle_id) }}">
+                            {{ entry.vehicle.registration_number }}
+                        </a>
+                        {% endif %}
+                        
+                        {% if entry.position_code %}
+                        <strong>Pozice:</strong> {{ entry.position_code }}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-2">
+                        <strong>Nájezd vozidla:</strong> {{ entry.mileage_at_action|default('-', true) }} km
+                        {% if entry.tread_depth_at_action %}
+                        <strong>Hloubka dezénu:</strong> {{ entry.tread_depth_at_action|round(1) }} mm
+                        {% endif %}
+                    </div>
+                    
+                    {% if entry.action_reason %}
+                    <div class="mb-2">
+                        <strong>Důvod:</strong> {{ entry.action_reason }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.note %}
+                    <div class="mb-2">
+                        <strong>Poznámka:</strong> {{ entry.note }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.technician %}
+                    <div class="mb-2">
+                        <strong>Technik:</strong> {{ entry.technician.username }}
+                    </div>
+                    {% endif %}
+                    
+                    {% if entry.photos %}
+                    <div class="mt-3">
+                        <strong>Fotografie:</strong>
+                        <div class="row mt-2">
+                            {% for photo in entry.photos %}
+                            <div class="col-md-3 mb-2">
+                                <a href="{{ url_for('get_upload', filename=photo.photo_path) }}" target="_blank">
+                                    <img src="{{ url_for('get_upload', filename=photo.photo_path) }}" class="img-fluid img-thumbnail" alt="Fotografie pneumatiky">
+                                </a>
+                                {% if photo.caption %}
+                                <div class="small text-muted mt-1">{{ photo.caption }}</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">Pro tuto pneumatiku zatím neexistují žádné záznamy o historii.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Servisní zásahy -->
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-tools"></i> Servisní zásahy</h5>
+            <a href="{{ url_for('add_service_action') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus"></i> Přidat servisní zásah
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if service_actions %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Typ zásahu</th>
+                        <th>Popis</th>
+                        <th>Technik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for action in service_actions %}
+                    <tr>
+                        <td>{{ action.action_date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ action.action_type }}</td>
+                        <td>{{ action.description }}</td>
+                        <td>{{ action.technician.username if action.technician else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Pro tuto pneumatiku zatím neexistují žádné záznamy o servisních zásazích.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

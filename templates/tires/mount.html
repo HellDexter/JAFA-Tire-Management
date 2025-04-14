@@ -1,0 +1,99 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Montáž pneumatiky{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-wrench"></i> Montáž pneumatiky</h1>
+    <div>
+        <a href="{{ url_for('list_tires') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam pneumatik
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Montáž pneumatiky na vozidlo</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('tire_mount') }}" method="post">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tire_id" class="form-label required-field">Pneumatika</label>
+                    <select class="form-select" id="tire_id" name="tire_id" required>
+                        <option value="">Vyberte pneumatiku ze skladu...</option>
+                        {% for tire in available_tires %}
+                        <option value="{{ tire.id }}">
+                            {{ tire.serial_number }} - {{ tire.tire_type.brand }} {{ tire.tire_type.model }} {{ tire.tire_type.size }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="vehicle_id" class="form-label required-field">Vozidlo</label>
+                    <select class="form-select" id="vehicle_id" name="vehicle_id" required>
+                        <option value="">Vyberte vozidlo...</option>
+                        {% for vehicle in vehicles %}
+                        <option value="{{ vehicle.id }}" data-mileage="{{ vehicle.current_mileage }}">
+                            {{ vehicle.registration_number }} ({{ vehicle.vehicle_type }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="position_id" class="form-label required-field">Pozice</label>
+                    <select class="form-select" id="position_id" name="position_id" disabled required>
+                        <option value="">Nejprve vyberte vozidlo...</option>
+                    </select>
+                    <small class="form-text text-muted">Zobrazí se pouze volné pozice na vybraném vozidle.</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="mileage" class="form-label required-field">Nájezd vozidla při montáži (km)</label>
+                    <input type="number" class="form-control" id="mileage" name="mileage" min="0" required>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="tread_depth" class="form-label required-field">Aktuální hloubka dezénu (mm)</label>
+                    <input type="number" class="form-control" id="tread_depth" name="tread_depth" step="0.1" min="0" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="note" class="form-label">Poznámka</label>
+                <textarea class="form-control" id="note" name="note" rows="3"></textarea>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">Namontovat pneumatiku</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Výběr vozidla automaticky nastaví jeho nájezd
+        const vehicleSelect = document.getElementById('vehicle_id');
+        const mileageInput = document.getElementById('mileage');
+        
+        if (vehicleSelect && mileageInput) {
+            vehicleSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.dataset.mileage) {
+                    mileageInput.value = selectedOption.dataset.mileage;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

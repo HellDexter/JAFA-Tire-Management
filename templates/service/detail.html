@@ -1,0 +1,208 @@
+{% extends 'layout.html' %}
+
+{% block title %} - Detail servisního zásahu{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tools"></i> Detail servisního zásahu</h1>
+    <div>
+        <a href="{{ url_for('list_service_actions') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Zpět na seznam
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Informace o servisním zásahu</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Základní informace</h6>
+                        <dl class="row">
+                            <dt class="col-sm-5">Datum zásahu:</dt>
+                            <dd class="col-sm-7">{{ service_action.action_date.strftime('%d.%m.%Y') }}</dd>
+                            
+                            <dt class="col-sm-5">Typ zásahu:</dt>
+                            <dd class="col-sm-7">{{ service_action.action_type }}</dd>
+                            
+                            <dt class="col-sm-5">Vytvořeno:</dt>
+                            <dd class="col-sm-7">{{ service_action.created_at.strftime('%d.%m.%Y %H:%M') }}</dd>
+                            
+                            <dt class="col-sm-5">Technik:</dt>
+                            <dd class="col-sm-7">{{ service_action.technician.username if service_action.technician else '-' }}</dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <h6>Informace o pneumatice</h6>
+                        <dl class="row">
+                            <dt class="col-sm-5">Sériové číslo:</dt>
+                            <dd class="col-sm-7">
+                                <a href="{{ url_for('tire_detail', id=service_action.tire.id) }}">
+                                    {{ service_action.tire.serial_number }}
+                                </a>
+                            </dd>
+                            
+                            <dt class="col-sm-5">Typ pneumatiky:</dt>
+                            <dd class="col-sm-7">{{ service_action.tire.tire_type.brand }} {{ service_action.tire.tire_type.model }}</dd>
+                            
+                            <dt class="col-sm-5">Rozměr:</dt>
+                            <dd class="col-sm-7">{{ service_action.tire.tire_type.size }}</dd>
+                            
+                            <dt class="col-sm-5">Stav:</dt>
+                            <dd class="col-sm-7">{{ service_action.tire.status }}</dd>
+                        </dl>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6>Popis zásahu</h6>
+                        <p>{{ service_action.description }}</p>
+                    </div>
+                    
+                    {% if service_action.tread_depth %}
+                    <div class="col-12 mb-3">
+                        <h6>Naměřená hloubka dezénu</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <span class="fs-3">{{ service_action.tread_depth }} mm</span>
+                            </div>
+                            <div class="progress" style="height: 25px; width: 200px;">
+                                {% set percentage = (service_action.tread_depth / 20) * 100 %}
+                                {% if service_action.tread_depth < 1.6 %}
+                                    {% set color = "danger" %}
+                                {% elif service_action.tread_depth < 3 %}
+                                    {% set color = "warning" %}
+                                {% elif service_action.tread_depth < 5 %}
+                                    {% set color = "info" %}
+                                {% else %}
+                                    {% set color = "success" %}
+                                {% endif %}
+                                <div class="progress-bar bg-{{ color }}" role="progressbar" style="width: {{ percentage }}%" 
+                                     aria-valuenow="{{ service_action.tread_depth }}" aria-valuemin="0" aria-valuemax="20"></div>
+                            </div>
+                        </div>
+                        {% if service_action.tread_depth < 1.6 %}
+                        <div class="alert alert-danger mt-2">
+                            <i class="fas fa-exclamation-triangle"></i> Hloubka dezénu je pod zákonným limitem!
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if service_action.note %}
+                    <div class="col-12 mb-3">
+                        <h6>Poznámka</h6>
+                        <p>{{ service_action.note }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if service_action.vehicle_mileage %}
+                <hr>
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6>Stav tachometru při zásahu</h6>
+                        <p class="fs-5">{{ service_action.vehicle_mileage }} km</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        {% if service_action.photo_path %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Fotodokumentace</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='uploads/' + service_action.photo_path) }}" class="img-fluid" alt="Fotodokumentace zásahu">
+                <div class="mt-2">
+                    <a href="{{ url_for('static', filename='uploads/' + service_action.photo_path) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="fas fa-eye"></i> Zobrazit v plné velikosti
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Vozidlo</h5>
+            </div>
+            <div class="card-body">
+                {% if service_action.tire.position and service_action.tire.position.vehicle %}
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-truck fa-2x me-3"></i>
+                    <div>
+                        <h6>{{ service_action.tire.position.vehicle.registration_number }}</h6>
+                        <p class="text-muted mb-0">{{ service_action.tire.position.vehicle.brand }} {{ service_action.tire.position.vehicle.model }}</p>
+                    </div>
+                </div>
+                <hr>
+                <p><strong>Pozice pneumatiky:</strong> {{ service_action.tire.position.position_code }}</p>
+                <div class="text-center mt-2">
+                    <a href="{{ url_for('vehicle_detail', id=service_action.tire.position.vehicle.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-truck"></i> Zobrazit vozidlo
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="fas fa-warehouse fa-3x text-muted mb-3"></i>
+                    <p>Pneumatika byla v době zásahu uskladněna ve skladu.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if related_actions %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Související servisní zásahy</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Typ zásahu</th>
+                        <th>Popis</th>
+                        <th>Dezén</th>
+                        <th>Technik</th>
+                        <th>Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for action in related_actions %}
+                    <tr>
+                        <td>{{ action.action_date.strftime('%d.%m.%Y') }}</td>
+                        <td>{{ action.action_type }}</td>
+                        <td>{{ action.description|truncate(40) }}</td>
+                        <td>{{ action.tread_depth if action.tread_depth else '-' }}</td>
+                        <td>{{ action.technician.username if action.technician else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('service_action_detail', id=action.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
