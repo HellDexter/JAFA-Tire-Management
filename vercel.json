@@ -26,6 +26,7 @@
   ],
   "env": {
     "FLASK_ENV": "production",
-    "FLASK_APP": "wsgi.py"
+    "FLASK_APP": "wsgi.py",
+    "PYTHON_VERSION": "3.9"
   }
 }
